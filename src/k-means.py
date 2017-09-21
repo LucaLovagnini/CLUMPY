@@ -1,16 +1,16 @@
 import numpy as np
-import random
-import math
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-import time
 import multiprocessing as mp
 import SharedArray as sa
+import random
+import math
+import time
 
 from sklearn.decomposition import PCA as sklearnPCA
 
 
-def generate_clusters (k, n, d, max_value=600000, deviation=80000):
+def generate_clusters (k, n, d, max_value, deviation):
     # generate n random points in d dimensions with elements in [-deviation, deviation]
     points = np.random.uniform(low=-deviation, high=deviation, size=(n, d))
     # generate k points in d dimensions with elements in [0, max_value]
@@ -49,7 +49,32 @@ def assign_point(i, k = len(centroids)):
 
 class CLUMPY:
 
-    def __init__(self, k, file=None, n=None, d=None, delimiter=None, iterations=100, random_centroids=False):
+    def __init__(
+            self,
+            k,
+            file=None,
+            n=1000,
+            d=None,
+            max_value=600000,
+            deviation=400000,
+            delimiter=None,
+            iterations=100,
+            random_centroids=False,
+            processes = mp.cpu_count()):
+        """
+        CLUMPY constructor.
+        :param k: number of clusters
+        :param file: input file. When None, generates random clusters. (default: None)
+        :param n: used when file=None. Number of generated points. (default: None)
+        :param d: used when file=None. Generated point's dimensions. (default: None)
+        :param max_value: used when file=None. Max value for generated clusters centers (default: 600000)
+        :param deviation: used when file=None. Max distance from cluster center for each point (default: 400000)
+        :param delimiter: used when file!=None, used for numpy.loadtxt() (default: None)
+        :param iterations: number of k-means iterations (default: 100)
+        :param random_centroids: if True generate random seeds.If False, use k-means++ (serial version) (default: False)
+        :param processes: number of spawned processes (default: multiprocessing.cpu.count())
+
+        """
         global centroids, points
         try:
             sa.delete("centroids")
@@ -59,13 +84,13 @@ class CLUMPY:
             sa.delete("points")
         except FileNotFoundError:
             pass
-        self.__file = file                          # input file
-        self.__k = k                                # number of clusters
-        self.__iterations = iterations              # number of iterations
-        self.__random_centroids = random_centroids  # if false, use k-means++
+        self.__file = file
+        self.__k = k
+        self.__iterations = iterations
+        self.__random_centroids = random_centroids
         self.__colors = \
             cm.rainbow(np.linspace(0, 1, self.__k))     # colors[i] = color of the i-th cluster
-
+        self.__processes = processes
         if file:
             # if file is specified, read points from file
             print("Reading {}...".format(file))
@@ -78,7 +103,7 @@ class CLUMPY:
             self.__n = n
             self.__d = d
             print("Generating {} random points in {} dimensions...".format(n, d))
-            points_copy = generate_clusters(k, self.__n, d)
+            points_copy = generate_clusters(k, self.__n, d, max_value, deviation)
         print(self.__n, self.__d)
         centroids = sa.create("shm://centroids", (k, self.__d))
         points = sa.create("shm://points", (self.__n,self.__d))
@@ -144,7 +169,7 @@ class CLUMPY:
 
     def cluster(self):
         global centroids
-        with mp.Pool(1) as pool:
+        with mp.Pool(self.__processes) as pool:
             for iteration in range(self.__iterations):
                 # update each assignment: if no point changed its cluster, then we have reached the optimum
                 # for each datapoint
@@ -180,5 +205,5 @@ class CLUMPY:
 
 
 if __name__ == "__main__":
-    clumpy = CLUMPY(k=5, n=5000, d=5)
+    clumpy = CLUMPY(k=5, n=2000, d=2)
     clumpy.cluster()
