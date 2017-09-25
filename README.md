@@ -27,7 +27,7 @@ Do you want to use your own file containg points in any dimension? No problem, a
 
 You can see the resulting clusters from the first example below:
 
-![alt text]()
+![](https://github.com/LucaLovagnini/CLUMPY/blob/master/figures/speedup.png)
 
 
 Seed initialization methods are:
