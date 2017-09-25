@@ -60,7 +60,7 @@ Files are read using [`numpy.loadtxt()`](https://docs.scipy.org/doc/numpy-1.13.0
 
 CLUMPY can be used from command line, where:
 
-python3 clumpy/clumpy.py --help
+	python3 clumpy/clumpy.py --help
 
 Will print the command line manual. Of course, you can import it as shown in the examples above.
 
