@@ -96,7 +96,7 @@ class CLUMPY:
             random_centroids = False
         if processes is None:
             mp.cpu_count()
-            
+
         self.__file=file
         self.__k = k
         self.__iterations = iterations
