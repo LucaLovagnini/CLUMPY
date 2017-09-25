@@ -1,5 +1,8 @@
 # CLUMPY: CLUstering with Multicores and PYthon
-CLUMPY is a parallel implementation of the Lloyd's k-means algorithm.
+
+## Introduction:
+
+**CLUMPY** is a parallel implementation of the Lloyd's k-means algorithm.
 
 Clustering with CLUMPY is incredibly easy, as shown in [this](https://github.com/LucaLovagnini/CLUMPY/blob/master/clumpy_example.py) example:
 
@@ -55,3 +58,16 @@ Termination conditions are:
 
 Files are read using [`numpy.loadtxt()`](https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.loadtxt.html), where you can specify your own `delimiter` (see below for details).
 
+CLUMPY can be used from command line, where:
+
+python3 clumpy/clumpy.py --help
+
+Will print the command line manual. Of course, you can import it as shown in the examples above.
+
+## Performance
+
+This is the obtained speedup by a quad-core Intel(R) Core(TM) i7-4700MQ CPU @ 2.40GHz, where `n=5000`, `d=2`, `k=7` and `processes` goes from 1 to 4 (each configuration is run 10 times and then averaged):
+
+![](https://github.com/LucaLovagnini/CLUMPY/blob/master/figures/speedup.png)
+
+As we can see, we reach almost optimal speedup even by using a low-end processor. By using 4 processes, CLUMPY takes less than 3 seconds on average to obtain the optimal clusters for the configuration above!
