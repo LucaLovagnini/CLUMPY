@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -53,8 +54,8 @@ class CLUMPY:
             self,
             k,
             file=None,
-            n=1000,
-            d=None,
+            n=2000,
+            d=2,
             max_value=600000,
             deviation=400000,
             delimiter=None,
@@ -65,8 +66,8 @@ class CLUMPY:
         CLUMPY constructor.
         :param k: number of clusters
         :param file: input file. When None, generates random clusters. (default: None)
-        :param n: used when file=None. Number of generated points. (default: None)
-        :param d: used when file=None. Generated point's dimensions. (default: None)
+        :param n: used when file=None. Number of generated points. (default: 2000)
+        :param d: used when file=None. Generated point's dimensions. (default: 2)
         :param max_value: used when file=None. Max value for generated clusters centers (default: 600000)
         :param deviation: used when file=None. Max distance from cluster center for each point (default: 400000)
         :param delimiter: used when file!=None, used for numpy.loadtxt() (default: None)
@@ -84,7 +85,19 @@ class CLUMPY:
             sa.delete("points")
         except FileNotFoundError:
             pass
-        self.__file = file
+
+        if max_value is None:
+            max_value = 600000
+        if deviation is None:
+            deviation = 400000
+        if iterations is None:
+            iterations = 100
+        if random_centroids is None:
+            random_centroids = False
+        if processes is None:
+            mp.cpu_count()
+            
+        self.__file=file
         self.__k = k
         self.__iterations = iterations
         self.__random_centroids = random_centroids
@@ -104,7 +117,6 @@ class CLUMPY:
             self.__d = d
             print("Generating {} random points in {} dimensions...".format(n, d))
             points_copy = generate_clusters(k, self.__n, d, max_value, deviation)
-        print(self.__n, self.__d)
         centroids = sa.create("shm://centroids", (k, self.__d))
         points = sa.create("shm://points", (self.__n,self.__d))
         np.copyto(points, points_copy)
@@ -200,10 +212,41 @@ class CLUMPY:
                     print("Centroids unchanged, terminating...")
                     break
             else:
-                print("All iterations are finished")
-            self.plot()
+                print("Iterations finished!")
 
 
 if __name__ == "__main__":
-    clumpy = CLUMPY(k=5, n=2000, d=2)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("k", help="number of clusters", type=int)
+    parser.add_argument("--file", help="input file. If not set, generates random clusters")
+    parser.add_argument("--n", help="used when file is not set. Number of generated points. (default: 2000)", type=int)
+    parser.add_argument("--d", help="used when file is not set. Generated point's dimensions. (default: 2)", type=int)
+    parser.add_argument("--max_value",
+                        help="used when file is not set. Max value for generated clusters centers (default: 600000)",
+                        type=int)
+    parser.add_argument("--deviation",
+                        help="used when file is not set. Max distance "
+                             "from cluster center for each point(default: 400000)",
+                        type=int)
+    parser.add_argument("--delimiter", help="used when file is set, used for numpy.loadtxt()")
+    parser.add_argument("--iterations", help="number of k-means iterations (default: 100)", type=int)
+    parser.add_argument("--random_centroids", help="if True generate random seeds."
+                        "If False, use k-means++ (serial version) (default: False)", type=bool)
+    parser.add_argument("--processes", help="number of spawned processes (default: multiprocessing.cpu.count())",
+                        type=int)
+    args = parser.parse_args()
+
+    k = args.k
+    random_centroids = args.random_centroids
+    processes = args.processes
+
+    if args.file:
+        clumpy = CLUMPY(k=k, file=args.file, delimiter=args.delimiter,
+                        random_centroids=random_centroids, processes=processes)
+    else:
+        clumpy = CLUMPY(k=k, n=args.n, d=args.d, max_value=args.max_value, deviation=args.deviation,
+                        delimiter=args.delimiter, iterations=args.iterations, random_centroids=random_centroids,
+                        processes=processes)
+
     clumpy.cluster()
+    clumpy.plot()
